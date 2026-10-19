@@ -88,6 +88,46 @@ def insert_after_plugins(src, header, imports=""):
     return imports + src[: m.end()] + "\n" + header + src[m.end():]
 
 
+def patch_root_gradle():
+    """Paksa compileSdk 36 untuk semua plugin (beberapa plugin masih 34/35,
+    sedangkan flutter_plugin_android_lifecycle mensyaratkan >= 36)."""
+    kts = ANDROID / "build.gradle.kts"
+    groovy = ANDROID / "build.gradle"
+    if kts.exists():
+        s = read(kts)
+        if "vaulteCompileSdk" in s:
+            return
+        block = '''// vaulteCompileSdk: samakan compileSdk semua modul (harus sebelum evaluationDependsOn)
+subprojects {
+    afterEvaluate {
+        val androidExt = extensions.findByName("android")
+        if (androidExt is com.android.build.gradle.BaseExtension) {
+            androidExt.compileSdkVersion(36)
+        }
+    }
+}
+
+'''
+        write(kts, block + s)
+    elif groovy.exists():
+        s = read(groovy)
+        if "vaulteCompileSdk" in s:
+            return
+        block = '''// vaulteCompileSdk
+subprojects {
+    afterEvaluate { p ->
+        if (p.hasProperty("android")) {
+            p.android.compileSdkVersion 36
+        }
+    }
+}
+
+'''
+        write(groovy, block + s)
+    else:
+        sys.exit("android/build.gradle(.kts) tidak ditemukan")
+
+
 def patch_gradle():
     kts = ANDROID / "app/build.gradle.kts"
     groovy = ANDROID / "app/build.gradle"
@@ -219,5 +259,6 @@ if __name__ == "__main__":
     patch_main_activity()
     patch_styles()
     patch_gradle()
+    patch_root_gradle()
     patch_ios()
     print("Platform dipatch.")
