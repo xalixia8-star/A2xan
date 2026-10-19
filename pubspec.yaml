@@ -1,0 +1,46 @@
+name: vaulte
+description: Vaulte - password manager offline dengan enkripsi AES-256-GCM.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  cryptography: ^2.7.0
+  cryptography_flutter: ^2.3.2
+  flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
+  path_provider: ^2.1.4
+  flutter_displaymode: ^0.6.0
+  flutter_svg: ^2.0.10+1
+  file_picker: ^8.1.2
+  share_plus: ^10.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Ikon brand (SVG simple-icons) diunduh oleh tools/bootstrap.sh ke assets/icons/.
+  # Jika sebuah ikon tidak ada, aplikasi otomatis memakai inisial huruf.
+  assets:
+    - assets/icons/
+
+  # Font diunduh oleh tools/bootstrap.sh ke assets/fonts/ (lisensi OFL).
+  fonts:
+    - family: CormorantGaramond
+      fonts:
+        - asset: assets/fonts/CormorantGaramond[wght].ttf
+        - asset: assets/fonts/CormorantGaramond-Italic[wght].ttf
+          style: italic
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter[opsz,wght].ttf

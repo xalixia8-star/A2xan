@@ -1,0 +1,143 @@
+name: Build Vaulte
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Batalkan build lama pada branch/ref yang sama bila ada push baru.
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    name: Build Android (APK + AAB)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap (platform, font, ikon)
+        run: bash tools/bootstrap.sh
+
+      - name: Siapkan signing (opsional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            {
+              echo "storePassword=$KEYSTORE_PASSWORD"
+              echo "keyPassword=$KEY_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "storeFile=upload-keystore.jks"
+            } > android/key.properties
+            echo "Signing rilis: memakai keystore dari GitHub Secrets."
+          else
+            echo "::notice::Secrets signing tidak lengkap - build memakai debug key."
+          fi
+
+      - run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      - name: Build APK (split per ABI)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaulte-apk
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 14
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaulte-aab
+          path: build/app/outputs/bundle/release/*.aab
+          retention-days: 14
+
+  build-ios:
+    name: Build iOS (unsigned IPA)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap (platform, font, ikon)
+        run: bash tools/bootstrap.sh
+
+      - run: flutter pub get
+
+      - name: Build iOS (tanpa codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package .ipa (unsigned)
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ipa/Payload/
+          (cd build/ipa && zip -qry Vaulte-unsigned.ipa Payload)
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaulte-ipa-unsigned
+          path: build/ipa/Vaulte-unsigned.ipa
+          retention-days: 14
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Daftar berkas rilis
+        run: ls -la dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.apk
+            dist/*.aab
+            dist/*.ipa
+          generate_release_notes: true

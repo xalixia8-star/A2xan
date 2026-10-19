@@ -1,0 +1,26 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Platform folders dibuat oleh tools/bootstrap.sh (jika ingin di-commit, hapus baris ini)
+/android/
+/ios/
+
+# Aset yang diunduh bootstrap
+/assets/fonts/*.ttf
+/assets/icons/*.svg
+
+# Signing - JANGAN pernah di-commit
+*.jks
+*.keystore
+key.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
