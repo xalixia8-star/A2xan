@@ -47,7 +47,7 @@ class _ShellScreenState extends State<ShellScreen> {
         duration: Motion.tab,
         transitionBuilder: (child, a) =>
             FadeTransition(opacity: a, child: ScaleTransition(scale: a, child: child)),
-        child: _index == 0 ? _AddButton(key: const ValueKey('fab')) : const SizedBox.shrink(),
+        child: _index == 0 ? const _AddButton(key: ValueKey('fab')) : const SizedBox.shrink(),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

@@ -16,6 +16,8 @@ if [ ! -d android ] || [ ! -d ios ]; then
     --platforms=android,ios --no-pub .
 fi
 python3 tools/patch_platforms.py
+# Tes contoh bawaan flutter create merujuk MyApp yang tidak ada di project ini.
+rm -f test/widget_test.dart
 
 echo "==> Fonts"
 mkdir -p assets/fonts
